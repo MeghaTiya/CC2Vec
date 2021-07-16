@@ -1,3 +1,8 @@
+# Megha made changes. 
+# smalltrain.pkl, smalltest.pkl, smalltrain_cc2ftr.pkl, smalltest_cc2ftr.pkl
+
+
+
 import argparse
 import pickle
 import numpy as np 
@@ -16,6 +21,7 @@ def finding_topK(cosine_sim, topK):
         topK_index.append(index)
         del cosine_sim[index]
     return topK_index
+
 
 def get_data_index(data, indexes):
     return [data[i] for i in indexes]
@@ -36,6 +42,8 @@ def finding_bestK(diff_trains, diff_test, topK_index):
     
     return bestK
 
+
+
 def clean_msg(messages):
     return [clean_each_line(line=msg) for msg in messages]
 
@@ -45,6 +53,8 @@ def clean_each_line(line):
     line = ' '.join(line).strip()
     return line
 
+
+
 def load_kNN_model(org_diff_code, tf_diff_code, ref_msg, topK=None):
     org_diff_train, org_diff_test = org_diff_code
     tf_diff_train, tf_diff_test = tf_diff_code
@@ -52,6 +62,9 @@ def load_kNN_model(org_diff_code, tf_diff_code, ref_msg, topK=None):
     blue_scores = list()  
 
     run_tqdm = [i for i in range(tf_diff_test.shape[0])]  
+    
+    predlm = []
+    testlm = []  
     
     for i, (_) in enumerate(tqdm(run_tqdm)):   
         element = tf_diff_test[i, :]
@@ -63,13 +76,37 @@ def load_kNN_model(org_diff_code, tf_diff_code, ref_msg, topK=None):
         else:
             topK_index = finding_topK(cosine_sim=cosine_sim, topK=topK)
             bestK = finding_bestK(diff_trains=org_diff_train, diff_test=org_diff_test[i], topK_index=topK_index)
-        train_msg, test_msg = ref_train[bestK].lower(), ref_test[i].lower()        
+            
+        train_msg, test_msg = ref_train[bestK].lower(), ref_test[i].lower() 
+        
+        predlm.append(train_msg)
+        testlm.append(test_msg)
+        
+        
+        
 
         chencherry = SmoothingFunction()
         blue_score = sentence_bleu(references=[test_msg.split()], hypothesis=train_msg.split(), 
                                    smoothing_function=chencherry.method5)
-        blue_scores.append(blue_score)    
+        blue_scores.append(blue_score) 
+        
+    # print(predlm, testlm)
+    
+    # file = open('tennis.csv', 'w')
+    # for i in predlm:
+      #   file.write(i + '\n')
+    
+    # file.close()
+    
+    with open('predlog.pkl', 'wb') as predlogfile:
+        pickle.dump(predlm, predlogfile)
+        
     return blue_scores 
+
+
+
+
+# Changes made here
 
 def read_args():
     parser = argparse.ArgumentParser()    
@@ -94,6 +131,13 @@ if __name__ == '__main__':
     org_diff_data = (train_diff, test_diff)
     tf_diff_data = (train_ftr, test_ftr)
     ref_data = (train_msg, test_msg)
+    
 
     blue_scores = load_kNN_model(org_diff_code=org_diff_data, tf_diff_code=tf_diff_data, ref_msg=ref_data)
+    
     print('Average of blue scores:', sum(blue_scores) / len(blue_scores) * 100)
+
+    
+    
+    #with open('pred_log_msg.pkl', 'wb') as predlogfile:
+        #pickle.dump(train_msg, predlogfile)
